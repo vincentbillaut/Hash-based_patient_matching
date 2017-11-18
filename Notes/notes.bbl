@@ -1,0 +1,35 @@
+\begin{thebibliography}{1}
+
+\bibitem{jbuhler}
+Jeremy Buhler.
+\newblock Efficient large-scale sequence comparison by locality-sensitive
+  hashing.
+\newblock {\em Bioinformatics}, 17(5):419--428, 2001.
+
+\bibitem{cohen2001finding}
+Edith Cohen, Mayur Datar, Shinji Fujiwara, Aristides Gionis, Piotr Indyk,
+  Rajeev Motwani, Jeffrey~D Ullman, and Cheng Yang.
+\newblock Finding interesting associations without support pruning.
+\newblock {\em IEEE Transactions on Knowledge and Data Engineering},
+  13(1):64--78, 2001.
+
+\bibitem{indyk1998approximate}
+Piotr Indyk and Rajeev Motwani.
+\newblock Approximate nearest neighbors: towards removing the curse of
+  dimensionality.
+\newblock In {\em Proceedings of the thirtieth annual ACM symposium on Theory
+  of computing}, pages 604--613. ACM, 1998.
+
+\bibitem{wall2014estimating}
+Jeffrey~D Wall, Ling~Fung Tang, Brandon Zerbe, Mark~N Kvale, Pui-Yan Kwok,
+  Catherine Schaefer, and Neil Risch.
+\newblock Estimating genotype error rates from high-coverage next-generation
+  sequence data.
+\newblock {\em Genome research}, 24(11):1734--1739, 2014.
+
+\bibitem{WENDL2003249}
+Michael~C. Wendl.
+\newblock Collision probability between sets of random variables.
+\newblock {\em Statistics \& Probability Letters}, 64(3):249 -- 254, 2003.
+
+\end{thebibliography}

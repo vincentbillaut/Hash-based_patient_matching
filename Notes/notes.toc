@@ -1,0 +1,25 @@
+\contentsline {section}{\numberline {1}Revealing common elements in independent string sets}{1}{section.1}
+\contentsline {subsection}{\numberline {1.1}Definition of the problem}{1}{subsection.1.1}
+\contentsline {paragraph}{Application to genomics}{2}{section*.2}
+\contentsline {subsection}{\numberline {1.2}Hashing function}{2}{subsection.1.2}
+\contentsline {subsubsection}{\numberline {1.2.1}Description}{2}{subsubsection.1.2.1}
+\contentsline {subsubsection}{\numberline {1.2.2}Statistical approach}{3}{subsubsection.1.2.2}
+\contentsline {paragraph}{Testing setup}{3}{section*.3}
+\contentsline {paragraph}{Our model}{3}{section*.4}
+\contentsline {paragraph}{Counting approach}{4}{section*.5}
+\contentsline {paragraph}{Back to statistics}{4}{section*.6}
+\contentsline {paragraph}{Note}{5}{section*.7}
+\contentsline {subsubsection}{\numberline {1.2.3}Extension to multiple hashing functions}{5}{subsubsection.1.2.3}
+\contentsline {section}{\numberline {2}Tolerance to errors}{6}{section.2}
+\contentsline {paragraph}{Application to genomics}{6}{section*.8}
+\contentsline {subsection}{\numberline {2.1}Complexification of the previous problem}{6}{subsection.2.1}
+\contentsline {paragraph}{Note}{7}{section*.9}
+\contentsline {subsection}{\numberline {2.2}Locality Sensitive Hashing}{7}{subsection.2.2}
+\contentsline {subsubsection}{\numberline {2.2.1}General idea}{7}{subsubsection.2.2.1}
+\contentsline {paragraph}{Note}{8}{section*.10}
+\contentsline {paragraph}{Note}{8}{section*.11}
+\contentsline {subsubsection}{\numberline {2.2.2}Building our own LSH function}{8}{subsubsection.2.2.2}
+\contentsline {paragraph}{Observation}{8}{section*.12}
+\contentsline {paragraph}{Errors}{9}{section*.13}
+\contentsline {paragraph}{Building our LSH function}{12}{section*.14}
+\contentsline {section}{References}{13}{section*.14}

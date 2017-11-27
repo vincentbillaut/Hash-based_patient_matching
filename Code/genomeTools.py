@@ -5,6 +5,7 @@ import pickle
 import os
 import distance
 
+from multiprocessing import Pool
 from tqdm import tqdm
 
 
@@ -98,34 +99,38 @@ class GenomeData:
     
     def get_n_indiv(self):
         return self.n_indiv
-    
-    
-    
+
+
 class ComparisonEngine:
     def __init__(self, data=None, channel = 'hap0', window_size = 1, metric='similarity', option = ''):
         self.genome_data = data
         self.channel = channel
+        self.option = option
+        self.metric_name = metric
+        self.window_size = window_size
         if self.genome_data is not None:
             self.get_data()
-        self.window_size = window_size
-        self.set_metric(metric)
-        self.option = option
+        self.set_metric(self.metric_name)
         self.cache_filename = None
         
     def get_data(self):
         if self.channel == 'hap0':
-            self.data = self.genome_data.getHaploid0()
+            self.data = self.genome_data.get_haploid0()
         elif self.channel == 'hap1':
-            self.data = self.genome_data.getHaploid1()
+            self.data = self.genome_data.get_haploid1()
         elif self.channel == 'dip':
-            self.data = self.genome_data.getDiploid()
+            self.data = self.genome_data.get_diploid()
+        if self.option == 'test':
+            self.data = self.data[:,:10000]
             
     def set_metric(self, metric):
+        def hamming(x,y):
+            return np.sum(np.abs(x-y))
         def similarity(x,y):
-            d = distance.hamming(x,y)
+            d = hamming(x,y)
             return (len(x) + len(y) - d) * 1.0 / (len(x) + len(y) + d)
         if metric == 'hamming':
-            self.metric = lambda x,y: distance.hamming(x,y,normalized=True)
+            self.metric = hamming
         if metric == 'similarity':
             self.metric = similarity
             
@@ -133,10 +138,11 @@ class ComparisonEngine:
         return self.metric
             
     def init_filename(self):
-        if not os.path.exists('data/cache/'):
-            os.mkdir('data/cache/')
-        self.cache_filename = 'data/cache/{}_{}_{}_{}.pkl'.format(self.genome_data.get_name(),
-                                                                  self.metric,
+        if not os.path.exists('Data/cache/'):
+            os.mkdir('Data/cache/')
+        self.cache_filename = 'Data/cache/{}_{}_{}_{}.pkl'.format(self.genome_data.get_name(),
+#                                                                   self.genome_data.name,
+                                                                  self.metric_name,
                                                                   self.window_size,
                                                                   self.option)
         
@@ -149,23 +155,36 @@ class ComparisonEngine:
     def dump_to_cache(self, data):
         if self.cache_filename is None:
             self.init_filename()
-        pickle.dump(result, open(self.cache_filename, 'wb'))
+        pickle.dump(data, open(self.cache_filename, 'wb'))
     
     def compute(self):
         n = self.genome_data.get_n_indiv()
+#         n = self.genome_data.n_indiv
         matrix = np.zeros((n, n))
-        test = [0]
+        test = np.array([0])
         for i in range(n):
             matrix[i,i] = self.metric(test, test)
         
         def compute_row(i):
             res = []
             for j in range(i+1,n):
-                res.append()
+                res.append(self.metric(self.data[i,], self.data[j,]))
             return res
         
+#         pool = Pool(8)
+#         results = pool.map(compute_row, list(range(n-1)))
+#         pool.close()
+#         pool.join()
+
+        results = []
+        for i in tqdm(range(n-1)):
+            results.append(compute_row(i))
         
-        
+        for i in range(n-1):
+            matrix[i+1:,i] = np.array(results[i])
+            matrix[i,i+1:] = np.array(results[i])
+            
+        return matrix
     
     def compute_individual(self, i):
         pass
@@ -184,3 +203,13 @@ class ComparisonEngine:
             if force_dump:
                 self.dump_to_cache(result)
             return result
+        
+    def heatmap(self, **args):
+        """
+        Only on notebook ; requires graphic output
+        """
+        try:
+            sns.heatmap(self.load_from_cache(), **args)
+            plt.show()
+        except:
+            print("Exception occured when running heatmap.\nProbably no graphic handler.")

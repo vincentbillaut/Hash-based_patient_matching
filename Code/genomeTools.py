@@ -15,6 +15,18 @@ def file_len(path):
             pass
     return i + 1
 
+def get_initial_ordering(path="Data/ALL.chr22.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.vcf.gz"):
+    """
+    Returns initial ordering of patients in the database
+    """
+    with gzip.open(path, 'rb') as f:
+    for i,l in enumerate(f):
+        s = l.decode('utf-8')
+        if i == 29:
+            initial_order = pd.DataFrame(s.split()[9:])
+            break
+    return initial_order
+
 
 class GenomeData:
     def __init__(self, name="chrom22", path="Data/22hap0.gz", verbose = True):
@@ -26,6 +38,7 @@ class GenomeData:
         self.n_indiv = file_len(self.source_path)
         self.haploid0 = self.extract_data()
         self.haploid1, self.diploid = None, None
+        self.ethnicity, self.initial_order, self.new_order = None, None, None
 
     def extract_data(self, path=None, verbose=None):
         if path is None:
@@ -76,29 +89,54 @@ class GenomeData:
             for i,l in enumerate(f):
                 info = l.strip().split()
                 data.loc[i] = info[:3]
-        self.ethnicity = data
-        
+        self.ethnicity = data.set_index('patient').sort_values(by=['continent', 'country'], ascending=[False, True])
+    
+    def extract_ethnicity_index(self):
+        if self.ethnicity is None:
+            self.extract_ethnicity()
+        ethnicity = self.ethnicity.set_index('patient').sort_values(
+                                                                by=['continent', 'country'], 
+                                                                ascending=[False, True])
+        if self.initial_order is None:
+            self.initial_order = get_initial_ordering()
+        self.initial_order['index1'] = self.initial_order.index
+        self.initial_order.set_index(0)
+        self.new_order = ethnicity.join(initial_order.set_index(0), how='left').index1
+    
     def apply(self, method, i, j):
         pass
         
     def get_name(self):
         return self.name
-        
-    def get_haploid0(self):
-        return self.haploid0
-    
-    def get_haploid1(self):
-        if self.haploid1 is None:
-            self.extract_haploid1()
-        return self.haploid1
-    
-    def get_diploid(self):
-        if self.diploid is None:
-            self.build_diploid()
-        return self.diploid
     
     def get_n_indiv(self):
         return self.n_indiv
+        
+    def get_haploid0(self, reorder=False):
+        if self.new_order is None:
+            self.extract_ethnicity_index()
+            return self.haploid0[self.new_order]
+        else:    
+            return self.haploid0
+    
+    def get_haploid1(self, reorder=False):
+        if self.haploid1 is None:
+            self.extract_haploid1()
+        if self.new_order is None:
+            self.extract_ethnicity_index()
+            return self.haploid1[self.new_order]
+        else:
+            return self.haploid1
+    
+    def get_diploid(self, reorder=False):
+        if self.diploid is None:
+            self.build_diploid()
+        if self.new_order is None:
+            self.extract_ethnicity_index()
+            return self.diploid[self.new_order]
+        else:
+            return self.diploid
+    
 
 
 class ComparisonEngine:
@@ -140,8 +178,9 @@ class ComparisonEngine:
     def init_filename(self):
         if not os.path.exists('Data/cache/'):
             os.mkdir('Data/cache/')
-        self.cache_filename = 'Data/cache/{}_{}_{}_{}.pkl'.format(self.genome_data.get_name(),
+        self.cache_filename = 'Data/cache/{}_{}_{}_{}_{}.pkl'.format(self.genome_data.get_name(),
 #                                                                   self.genome_data.name,
+                                                                  self.channel,
                                                                   self.metric_name,
                                                                   self.window_size,
                                                                   self.option)

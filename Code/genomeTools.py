@@ -20,24 +20,23 @@ def get_initial_ordering(path="Data/ALL.chr22.integrated_phase1_v3.20101123.snps
     Returns initial ordering of patients in the database
     """
     with gzip.open(path, 'rb') as f:
-    for i,l in enumerate(f):
-        s = l.decode('utf-8')
-        if i == 29:
-            initial_order = pd.DataFrame(s.split()[9:])
-            break
+        for i,l in enumerate(f):
+            s = l.decode('utf-8')
+            if i == 29:
+                initial_order = pd.DataFrame(s.split()[9:])
+                break
     return initial_order
 
 
 class GenomeData:
-    def __init__(self, name="chrom22", path="Data/22hap0.gz", verbose = True):
+    def __init__(self, name="chrom22", path="Data/22hap0.gz", verbose = True, test = False):
         self.name = name
-        self.source_path = path
+        self.source_path = path if not test else "Data/22hap0_test.gz"
         self.verbose = verbose
         if self.verbose:
             print("Retrieving file length...")
         self.n_indiv = file_len(self.source_path)
-        self.haploid0 = self.extract_data()
-        self.haploid1, self.diploid = None, None
+        self.haploid0, self.haploid1, self.diploid = None, None, None
         self.ethnicity, self.initial_order, self.new_order = None, None, None
 
     def extract_data(self, path=None, verbose=None):
@@ -81,7 +80,7 @@ class GenomeData:
     def build_diploid(self):
         if self.verbose:
             print("Building diploid data...")
-        self.diploid = self.haploid0 + self.haploid1
+        self.diploid = self_get_haploid0() + self_get_haploid1()
     
     def extract_ethnicity(self, path='Data/integrated_call_samples.20101123.ALL.panel'):
         data = pd.DataFrame(columns=['patient', 'country', 'continent'])
@@ -94,14 +93,12 @@ class GenomeData:
     def extract_ethnicity_index(self):
         if self.ethnicity is None:
             self.extract_ethnicity()
-        ethnicity = self.ethnicity.set_index('patient').sort_values(
-                                                                by=['continent', 'country'], 
-                                                                ascending=[False, True])
+        ethnicity = self.ethnicity
         if self.initial_order is None:
             self.initial_order = get_initial_ordering()
         self.initial_order['index1'] = self.initial_order.index
         self.initial_order.set_index(0)
-        self.new_order = ethnicity.join(initial_order.set_index(0), how='left').index1
+        self.new_order = ethnicity.join(self.initial_order.set_index(0), how='left').index1
     
     def apply(self, method, i, j):
         pass
@@ -111,15 +108,17 @@ class GenomeData:
     
     def get_n_indiv(self):
         return self.n_indiv
-        
-    def get_haploid0(self, reorder=False):
+
+    def get_haploid0(self):
+        if self.haploid0 is None:
+            self.haploid0 = self.extract_data()
         if self.new_order is None:
             self.extract_ethnicity_index()
             return self.haploid0[self.new_order]
         else:    
             return self.haploid0
     
-    def get_haploid1(self, reorder=False):
+    def get_haploid1(self):
         if self.haploid1 is None:
             self.extract_haploid1()
         if self.new_order is None:
@@ -128,7 +127,7 @@ class GenomeData:
         else:
             return self.haploid1
     
-    def get_diploid(self, reorder=False):
+    def get_diploid(self):
         if self.diploid is None:
             self.build_diploid()
         if self.new_order is None:
@@ -140,12 +139,14 @@ class GenomeData:
 
 
 class ComparisonEngine:
-    def __init__(self, data=None, channel = 'hap0', window_size = 1, metric='similarity', option = ''):
+    def __init__(self, data=None, channel = 'hap0', window_size = 1, metric='similarity', 
+                 option = '', ethnicity_reorder = True):
         self.genome_data = data
         self.channel = channel
         self.option = option
         self.metric_name = metric
         self.window_size = window_size
+        self.ethnicity_reorder = ethnicity_reorder
         if self.genome_data is not None:
             self.get_data()
         self.set_metric(self.metric_name)
@@ -153,13 +154,11 @@ class ComparisonEngine:
         
     def get_data(self):
         if self.channel == 'hap0':
-            self.data = self.genome_data.get_haploid0()
+            self.data = self.genome_data.get_haploid0(reorder=self.ethnicity_reorder)
         elif self.channel == 'hap1':
-            self.data = self.genome_data.get_haploid1()
+            self.data = self.genome_data.get_haploid1(reorder=self.ethnicity_reorder)
         elif self.channel == 'dip':
-            self.data = self.genome_data.get_diploid()
-        if self.option == 'test':
-            self.data = self.data[:,:10000]
+            self.data = self.genome_data.get_diploid(reorder=self.ethnicity_reorder)
             
     def set_metric(self, metric):
         def hamming(x,y):
@@ -178,11 +177,12 @@ class ComparisonEngine:
     def init_filename(self):
         if not os.path.exists('Data/cache/'):
             os.mkdir('Data/cache/')
-        self.cache_filename = 'Data/cache/{}_{}_{}_{}_{}.pkl'.format(self.genome_data.get_name(),
+        self.cache_filename = 'Data/cache/{}_{}_{}_{}{}_{}.pkl'.format(self.genome_data.get_name(),
 #                                                                   self.genome_data.name,
                                                                   self.channel,
                                                                   self.metric_name,
                                                                   self.window_size,
+                                                                  "_reorder" if self.ethnicity_reorder else "",
                                                                   self.option)
         
     def load_from_cache(self):

@@ -109,6 +109,15 @@ class GenomeData:
     def get_n_indiv(self):
         return self.n_indiv
 
+    def get_n_positions(self):
+        if self.haploid0 is None:
+            if self.haploid1 is None:
+                return self.get_haploid0().shape[1]
+            else:
+                return self.haploid1.shape[1]
+        else:
+            return self.haploid0.shape[1]
+    
     def get_haploid0(self):
         if self.haploid0 is None:
             self.haploid0 = self.extract_data()
@@ -139,26 +148,42 @@ class GenomeData:
 
 
 class ComparisonEngine:
-    def __init__(self, data=None, channel = 'hap0', window_size = 1, metric='similarity', 
-                 option = '', ethnicity_reorder = True):
+    """
+    
+    """
+    def __init__(self, data, channel = 'hap0', window_size = -1, window_start = None, metric='similarity', 
+                 option = '', ethnicity_reorder = True, verbose = True):
         self.genome_data = data
         self.channel = channel
         self.option = option
-        self.metric_name = metric
-        self.window_size = window_size
+        self.verbose = verbose
         self.ethnicity_reorder = ethnicity_reorder
-        if self.genome_data is not None:
-            self.get_data()
+        # deciding the window
+        if window_size == -1 or window_size > self.genome_data.get_n_positions():
+            self.window_size = self.genome_data.get_n_positions()
+        elif type(window_size) == float:
+            self.window_size = int(window_size * self.genome_data.get_n_positions())
+        else:
+            self.window_size = window_size
+        if window_start is None:
+            self.window_start = np.random.randint(0,self.genome_data.get_n_positions() - self.window_size + 1)
+        else:
+            self.window_start = window_start
+        # retrieving the data
+        self.get_data()
+        # setting the metric
+        self.metric_name = metric
         self.set_metric(self.metric_name)
+        # setting cache_filename
         self.cache_filename = None
         
     def get_data(self):
         if self.channel == 'hap0':
-            self.data = self.genome_data.get_haploid0(reorder=self.ethnicity_reorder)
+            self.data = self.genome_data.get_haploid0()[:, self.window_start:(self.window_start + self.window_size)]
         elif self.channel == 'hap1':
-            self.data = self.genome_data.get_haploid1(reorder=self.ethnicity_reorder)
+            self.data = self.genome_data.get_haploid1()[:, self.window_start:(self.window_start + self.window_size)]
         elif self.channel == 'dip':
-            self.data = self.genome_data.get_diploid(reorder=self.ethnicity_reorder)
+            self.data = self.genome_data.get_diploid()[:, self.window_start:(self.window_start + self.window_size)]
             
     def set_metric(self, metric):
         def hamming(x,y):
@@ -177,13 +202,14 @@ class ComparisonEngine:
     def init_filename(self):
         if not os.path.exists('Data/cache/'):
             os.mkdir('Data/cache/')
-        self.cache_filename = 'Data/cache/{}_{}_{}_{}{}_{}.pkl'.format(self.genome_data.get_name(),
+        self.cache_filename = 'Data/cache/{}_{}_{}_{}_{}{}{}.pkl'.format(self.genome_data.get_name(),
 #                                                                   self.genome_data.name,
                                                                   self.channel,
                                                                   self.metric_name,
                                                                   self.window_size,
-                                                                  "_reorder" if self.ethnicity_reorder else "",
-                                                                  self.option)
+                                                                  self.window_start,
+                                                                  "_originalorder" if not self.ethnicity_reorder else "",
+                                                                  ("_"+self.option) if self.option != "" else "")
         
     def load_from_cache(self):
         if self.cache_filename is None:
@@ -216,8 +242,12 @@ class ComparisonEngine:
 #         pool.join()
 
         results = []
-        for i in tqdm(range(n-1)):
-            results.append(compute_row(i))
+        if self.verbose:
+            for i in tqdm(range(n-1)):
+                results.append(compute_row(i))
+        else:
+            for i in range(n-1):
+                results.append(compute_row(i))
         
         for i in range(n-1):
             matrix[i+1:,i] = np.array(results[i])
@@ -251,4 +281,4 @@ class ComparisonEngine:
             sns.heatmap(self.load_from_cache(), **args)
             plt.show()
         except:
-            print("Exception occured when running heatmap.\nProbably no graphic handler.")
+            print("Exception occured when running heatmap.\nProbably no graphic handler, or you haven't computed the data yet.")

@@ -47,7 +47,7 @@ class RandomSlice(Preprocessing):
             The data, sliced accordingly.
 
         """
-        n = data.get_n_positions()
+        n = data.shape[1]
         # slice_size
         if self.slice_param == -1 or self.slice_param > n:
             slice_size = n

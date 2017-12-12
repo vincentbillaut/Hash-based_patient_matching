@@ -5,7 +5,7 @@ import pickle
 import os
 import distance
 
-import preprocessing as pp
+import common.preprocessing as pp
 
 from multiprocessing import Pool
 from tqdm import tqdm

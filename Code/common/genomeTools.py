@@ -44,8 +44,6 @@ class GenomeData:
             path=self.source_path
         if verbose is None:
             verbose=self.verbose
-        if verbose:
-            print("Extracting data from {}...".format(path))
         with gzip.open(path, 'rb') as f:
             for l in f:
                 break
@@ -53,13 +51,19 @@ class GenomeData:
             n = len(s.split())
             data = np.zeros((self.n_indiv,n), dtype=int)
             f.seek(0)
-            for i,l in tqdm(enumerate(f), total=self.n_indiv):
-                s = l.decode('utf8')
-                data[i,] = np.array(list(map(float, s.split())))
+            if verbose:
+                for i,l in tqdm(enumerate(f), total=self.n_indiv,
+                                desc="data extr. ({})".format(path)):
+                    s = l.decode('utf8')
+                    data[i,] = np.array(list(map(float, s.split())))
+            else:
+                for i,l in enumerate(f):
+                    s = l.decode('utf8')
+                    data[i,] = np.array(list(map(float, s.split())))
         if verbose:
             print("\tdone.")
         return data
-    
+
     def extract_labels(self, path="Data/ALL.chr22.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.vcf.gz"):
         if self.verbose:
             print("Extracting patient IDs...")
@@ -71,17 +75,17 @@ class GenomeData:
                     break
         self.index_to_id = idList
         self.id_to_index = {idList[i]:i for i in range(len(idList))}
-    
+
     def extract_haploid1(self):
         if self.verbose:
             print("Extracting second haploid data...")
         self.haploid1 = self.extract_data(self.source_path.replace('0', '1'))
-        
+
     def build_diploid(self):
         if self.verbose:
             print("Building diploid data...")
         self.diploid = self_get_haploid0() + self_get_haploid1()
-    
+
     def extract_ethnicity(self, path='Data/integrated_call_samples.20101123.ALL.panel'):
         data = pd.DataFrame(columns=['patient', 'country', 'continent'])
         with open(path, 'r') as f:
@@ -89,7 +93,7 @@ class GenomeData:
                 info = l.strip().split()
                 data.loc[i] = info[:3]
         self.ethnicity = data.set_index('patient').sort_values(by=['continent', 'country'], ascending=[False, True])
-    
+
     def extract_ethnicity_index(self):
         if self.ethnicity is None:
             self.extract_ethnicity()
@@ -99,13 +103,13 @@ class GenomeData:
         self.initial_order['index1'] = self.initial_order.index
         self.initial_order.set_index(0)
         self.new_order = ethnicity.join(self.initial_order.set_index(0), how='left').index1
-    
+
     def apply(self, method, i, j):
         pass
-        
+
     def get_name(self):
         return self.name
-    
+
     def get_n_indiv(self):
         return self.n_indiv
 
@@ -117,16 +121,16 @@ class GenomeData:
                 return self.haploid1.shape[1]
         else:
             return self.haploid0.shape[1]
-    
+
     def get_haploid0(self):
         if self.haploid0 is None:
             self.haploid0 = self.extract_data()
         if self.new_order is None:
             self.extract_ethnicity_index()
             return self.haploid0[self.new_order]
-        else:    
+        else:
             return self.haploid0
-    
+
     def get_haploid1(self):
         if self.haploid1 is None:
             self.extract_haploid1()
@@ -135,7 +139,7 @@ class GenomeData:
             return self.haploid1[self.new_order]
         else:
             return self.haploid1
-    
+
     def get_diploid(self):
         if self.diploid is None:
             self.build_diploid()
@@ -144,14 +148,14 @@ class GenomeData:
             return self.diploid[self.new_order]
         else:
             return self.diploid
-    
+
 
 
 class ComparisonEngine:
     """
-    
+
     """
-    def __init__(self, data, channel = 'hap0', window_size = -1, window_start = None, metric='similarity', 
+    def __init__(self, data, channel = 'hap0', window_size = -1, window_start = None, metric='similarity',
                  option = '', ethnicity_reorder = True, verbose = True):
         self.genome_data = data
         self.channel = channel
@@ -165,6 +169,7 @@ class ComparisonEngine:
             self.window_size = int(window_size * self.genome_data.get_n_positions())
         else:
             self.window_size = window_size
+
         if window_start is None:
             self.window_start = np.random.randint(0,self.genome_data.get_n_positions() - self.window_size + 1)
         else:
@@ -176,7 +181,7 @@ class ComparisonEngine:
         self.set_metric(self.metric_name)
         # setting cache_filename
         self.cache_filename = None
-        
+
     def get_data(self):
         if self.channel == 'hap0':
             self.data = self.genome_data.get_haploid0()[:, self.window_start:(self.window_start + self.window_size)]
@@ -184,7 +189,7 @@ class ComparisonEngine:
             self.data = self.genome_data.get_haploid1()[:, self.window_start:(self.window_start + self.window_size)]
         elif self.channel == 'dip':
             self.data = self.genome_data.get_diploid()[:, self.window_start:(self.window_start + self.window_size)]
-            
+
     def set_metric(self, metric):
         def hamming(x,y):
             return np.sum(np.abs(x-y))
@@ -195,10 +200,10 @@ class ComparisonEngine:
             self.metric = hamming
         if metric == 'similarity':
             self.metric = similarity
-            
+
     def get_metric(self):
         return self.metric
-            
+
     def init_filename(self):
         if not os.path.exists('Data/cache/'):
             os.mkdir('Data/cache/')
@@ -210,18 +215,18 @@ class ComparisonEngine:
                                                                   self.window_start,
                                                                   "_originalorder" if not self.ethnicity_reorder else "",
                                                                   ("_"+self.option) if self.option != "" else "")
-        
+
     def load_from_cache(self):
         if self.cache_filename is None:
             self.init_filename()
         result = pickle.load(open(self.cache_filename, 'rb'))
         return result
-    
+
     def dump_to_cache(self, data):
         if self.cache_filename is None:
             self.init_filename()
         pickle.dump(data, open(self.cache_filename, 'wb'))
-    
+
     def compute(self):
         n = self.genome_data.get_n_indiv()
 #         n = self.genome_data.n_indiv
@@ -229,13 +234,13 @@ class ComparisonEngine:
         test = np.array([0])
         for i in range(n):
             matrix[i,i] = self.metric(test, test)
-        
+
         def compute_row(i):
             res = []
             for j in range(i+1,n):
                 res.append(self.metric(self.data[i,], self.data[j,]))
             return res
-        
+
 #         pool = Pool(8)
 #         results = pool.map(compute_row, list(range(n-1)))
 #         pool.close()
@@ -243,21 +248,21 @@ class ComparisonEngine:
 
         results = []
         if self.verbose:
-            for i in tqdm(range(n-1)):
+            for i in tqdm(range(n-1), desc="pairwise metric"):
                 results.append(compute_row(i))
         else:
             for i in range(n-1):
                 results.append(compute_row(i))
-        
+
         for i in range(n-1):
             matrix[i+1:,i] = np.array(results[i])
             matrix[i,i+1:] = np.array(results[i])
-            
+
         return matrix
-    
+
     def compute_individual(self, i):
         pass
-    
+
     def apply(self, force_recompute = False, force_dump = True):
         if not force_recompute:
             try:
@@ -272,7 +277,7 @@ class ComparisonEngine:
             if force_dump:
                 self.dump_to_cache(result)
             return result
-        
+
     def heatmap(self, **args):
         """
         Only on notebook ; requires graphic output

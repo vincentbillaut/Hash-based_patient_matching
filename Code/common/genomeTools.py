@@ -12,14 +12,38 @@ from tqdm import tqdm
 
 
 def file_len(path):
+    """Retrieves the length of a file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the file.
+
+    Returns
+    -------
+    int
+        Length (number of lines) of the file.
+
+    """
     with gzip.open(path, 'rb') as f:
         for i, _ in enumerate(f):
             pass
     return i + 1
 
 def get_initial_ordering(path="Data/ALL.chr22.integrated_phase1_v3.20101123.snps_indels_svs.genotypes.vcf.gz"):
-    """
-    Returns initial ordering of patients in the database
+    """Uses the data in path to retrieve the initial ordering of individuals.
+    This is useful for when we want to reorder them by ethnicities.
+
+    Parameters
+    ----------
+    path : str
+        Path to the source file containing the info. Defaulted to that for chr22.
+
+    Returns
+    -------
+    pd.DataFrame
+        Initial order of individuals in the dataset.
+
     """
     with gzip.open(path, 'rb') as f:
         for i,l in enumerate(f):
@@ -106,16 +130,37 @@ class GenomeData:
         self.initial_order.set_index(0)
         self.new_order = ethnicity.join(self.initial_order.set_index(0), how='left').index1
 
-    def apply(self, method, i, j):
-        pass
-
     def get_name(self):
+        """Returns name of the object.
+
+        Returns
+        -------
+        str
+            Name of the object.
+
+        """
         return self.name
 
     def get_n_indiv(self):
+        """Returns number of individuals in the data (number of rows).
+
+        Returns
+        -------
+        int
+            Number of individuals in the data (number of rows).
+
+        """
         return self.n_indiv
 
     def get_n_positions(self):
+        """Retrieves the number of positions in the data (number of columns).
+
+        Returns
+        -------
+        int
+            Number of positions in the data (number of columns).
+
+        """
         if self.haploid0 is None:
             if self.haploid1 is None:
                 return self.get_haploid0().shape[1]
@@ -125,6 +170,14 @@ class GenomeData:
             return self.haploid0.shape[1]
 
     def get_haploid0(self):
+        """Returns haploid data from first channel, and computes it if needed.
+
+        Returns
+        -------
+        numpy.ndarray
+            Haploid0 data associated with self.
+
+        """
         if self.haploid0 is None:
             self.haploid0 = self.extract_data()
         if self.new_order is None:
@@ -134,6 +187,14 @@ class GenomeData:
             return self.haploid0
 
     def get_haploid1(self):
+        """Returns haploid data from second channel, and computes it if needed.
+
+        Returns
+        -------
+        numpy.ndarray
+            Haploid1 data associated with self.
+
+        """
         if self.haploid1 is None:
             self.extract_haploid1()
         if self.new_order is None:
@@ -143,6 +204,14 @@ class GenomeData:
             return self.haploid1
 
     def get_diploid(self):
+        """Returns diploid data, and computes it if needed.
+
+        Returns
+        -------
+        numpy.ndarray
+            Diploid data associated with self.
+
+        """
         if self.diploid is None:
             self.build_diploid()
         if self.new_order is None:

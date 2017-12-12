@@ -2,11 +2,15 @@ import numpy as np
 import pandas as pd
 
 class Preprocessing:
-    def get_name(self):
+    def __init__(self):
         pass
 
+    def get_name(self):
+        return ""
+
     def apply(self, data):
-        pass
+        return data
+
 
 class RandomSlice(Preprocessing):
     """
@@ -26,8 +30,8 @@ class RandomSlice(Preprocessing):
             based on its parameters.
 
         """
-        return "rand-slice_{}{}".format(self.slice_param,
-        "_"+str(self.start_param) if self.start_param is not None else "")
+        return "_rand-slice-{}{}".format(self.slice_param,
+        ("-"+str(self.start_param)) if self.start_param is not None else "")
 
     def apply(self, data):
         """Applies slicing to given data.
@@ -69,4 +73,3 @@ class HashingWindow(Preprocessing):
 
     def apply(self, data):
         pass
-    

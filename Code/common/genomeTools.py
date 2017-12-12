@@ -168,18 +168,6 @@ class ComparisonEngine:
         self.option = option
         self.verbose = verbose
         self.ethnicity_reorder = ethnicity_reorder
-        # deciding the window
-        # if window_size == -1 or window_size > self.genome_data.get_n_positions():
-        #     self.window_size = self.genome_data.get_n_positions()
-        # elif type(window_size) == float:
-        #     self.window_size = int(window_size * self.genome_data.get_n_positions())
-        # else:
-        #     self.window_size = window_size
-        #
-        # if window_start is None:
-        #     self.window_start = np.random.randint(0,self.genome_data.get_n_positions() - self.window_size + 1)
-        # else:
-        #     self.window_start = window_start
         # retrieving the data
         self.get_data()
         # setting the metric

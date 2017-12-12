@@ -5,6 +5,8 @@ import pickle
 import os
 import distance
 
+import preprocessing as pp
+
 from multiprocessing import Pool
 from tqdm import tqdm
 
@@ -155,25 +157,29 @@ class ComparisonEngine:
     """
 
     """
-    def __init__(self, data, channel = 'hap0', window_size = -1, window_start = None, metric='similarity',
+    def __init__(self, data, preprocessing, channel = 'hap0', metric='similarity',
                  option = '', ethnicity_reorder = True, verbose = True):
         self.genome_data = data
+        if preprocessing is not None:
+            self.preprocessing = preprocessing
+        else:
+            self.preprocessing = pp.Preprocessing()
         self.channel = channel
         self.option = option
         self.verbose = verbose
         self.ethnicity_reorder = ethnicity_reorder
         # deciding the window
-        if window_size == -1 or window_size > self.genome_data.get_n_positions():
-            self.window_size = self.genome_data.get_n_positions()
-        elif type(window_size) == float:
-            self.window_size = int(window_size * self.genome_data.get_n_positions())
-        else:
-            self.window_size = window_size
-
-        if window_start is None:
-            self.window_start = np.random.randint(0,self.genome_data.get_n_positions() - self.window_size + 1)
-        else:
-            self.window_start = window_start
+        # if window_size == -1 or window_size > self.genome_data.get_n_positions():
+        #     self.window_size = self.genome_data.get_n_positions()
+        # elif type(window_size) == float:
+        #     self.window_size = int(window_size * self.genome_data.get_n_positions())
+        # else:
+        #     self.window_size = window_size
+        #
+        # if window_start is None:
+        #     self.window_start = np.random.randint(0,self.genome_data.get_n_positions() - self.window_size + 1)
+        # else:
+        #     self.window_start = window_start
         # retrieving the data
         self.get_data()
         # setting the metric
@@ -184,11 +190,12 @@ class ComparisonEngine:
 
     def get_data(self):
         if self.channel == 'hap0':
-            self.data = self.genome_data.get_haploid0()[:, self.window_start:(self.window_start + self.window_size)]
+            data = self.genome_data.get_haploid0()
         elif self.channel == 'hap1':
-            self.data = self.genome_data.get_haploid1()[:, self.window_start:(self.window_start + self.window_size)]
+            data = self.genome_data.get_haploid1()
         elif self.channel == 'dip':
-            self.data = self.genome_data.get_diploid()[:, self.window_start:(self.window_start + self.window_size)]
+            data = self.genome_data.get_diploid()
+        self.data = self.preprocessing.apply(data)
 
     def set_metric(self, metric):
         def hamming(x,y):
@@ -207,12 +214,10 @@ class ComparisonEngine:
     def init_filename(self):
         if not os.path.exists('Data/cache/'):
             os.mkdir('Data/cache/')
-        self.cache_filename = 'Data/cache/{}_{}_{}_{}_{}{}{}.pkl'.format(self.genome_data.get_name(),
-#                                                                   self.genome_data.name,
+        self.cache_filename = 'Data/cache/{}_{}_{}{}{}{}.pkl'.format(self.genome_data.get_name(),
                                                                   self.channel,
                                                                   self.metric_name,
-                                                                  self.window_size,
-                                                                  self.window_start,
+                                                                  self.preprocessing.get_name(),
                                                                   "_originalorder" if not self.ethnicity_reorder else "",
                                                                   ("_"+self.option) if self.option != "" else "")
 

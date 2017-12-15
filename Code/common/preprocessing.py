@@ -4,6 +4,15 @@ import hashlib
 
 from tqdm import tqdm
 
+
+# verbose function
+def tqdm_v(gen, verbose=True, **kwargs):
+    if verbose:
+        return tqdm(gen, **kwargs)
+    else:
+        return gen
+
+
 class Preprocessing:
     def __init__(self):
         pass
@@ -104,16 +113,11 @@ class HashingWindow(Preprocessing):
                 curr += min(self.granularity, data.shape[1]-i)
                 l.append(curr)
             return np.array(l[:-1])
-        # verbose function
-        def tqdm_v(gen, **kwargs):
-            if verbose:
-                return tqdm(gen, **kwargs)
-            else:
-                return gen
 
         chunks = chunk_sizes()
         result = np.zeros((data.shape[0], len(chunks)+1))
         for j,subarray in tqdm_v(enumerate(np.split(data, chunks, axis=1)),
+                                    verbose,
                                     desc="hashing"):
             for i in range(subarray.shape[0]):
                 result[i,j] = int(self.hasher((''.join(map(str,subarray[i,:]))).encode('UTF-8')).hexdigest(),16)

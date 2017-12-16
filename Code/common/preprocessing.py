@@ -45,13 +45,15 @@ class RandomSlice(Preprocessing):
         return "_rand-slice-{}{}".format(self.slice_param,
         ("-"+str(self.start_param)) if self.start_param is not None else "")
 
-    def apply(self, data):
+    def apply(self, data, verbose=False):
         """Applies slicing to given data.
 
         Parameters
         ----------
         data : numpy.ndarray
             The data to apply the slicing on.
+        verbose : bool
+            Whether to print stuff.
 
         Returns
         -------
@@ -60,6 +62,8 @@ class RandomSlice(Preprocessing):
 
         """
         n = data.shape[1]
+        if verbose:
+            print("retrieving window")
         # slice_size
         if self.slice_param == -1 or self.slice_param > n:
             slice_size = n

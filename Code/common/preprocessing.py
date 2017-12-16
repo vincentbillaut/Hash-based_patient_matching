@@ -117,8 +117,7 @@ class HashingWindow(Preprocessing):
         chunks = chunk_sizes()
         result = np.zeros((data.shape[0], len(chunks)+1))
         for j,subarray in tqdm_v(enumerate(np.split(data, chunks, axis=1)),
-                                    verbose,
-                                    desc="hashing"):
+                                    verbose, desc="hashing"):
             for i in range(subarray.shape[0]):
                 result[i,j] = int(self.hasher((''.join(map(str,subarray[i,:]))).encode('UTF-8')).hexdigest(),16)
         return result

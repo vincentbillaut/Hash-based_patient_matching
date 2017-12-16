@@ -365,18 +365,9 @@ class ComparisonEngine:
                 res.append(self.metric(self.data[i, ], self.data[j, ]))
             return res
 
-#         pool = Pool(8)
-#         results = pool.map(compute_row, list(range(n-1)))
-#         pool.close()
-#         pool.join()
-
         results = []
-        if self.verbose:
-            for i in tqdm(range(n - 1), desc="pairwise metric"):
-                results.append(compute_row(i))
-        else:
-            for i in range(n - 1):
-                results.append(compute_row(i))
+        for i in tqdm_v(range(n - 1), self.verbose, desc="pairwise metric"):
+            results.append(compute_row(i))
 
         for i in range(n - 1):
             matrix[i + 1:, i] = np.array(results[i])

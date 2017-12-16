@@ -45,13 +45,15 @@ class RandomSlice(Preprocessing):
         return "_rand-slice-{}{}".format(self.slice_param,
         ("-"+str(self.start_param)) if self.start_param is not None else "")
 
-    def apply(self, data):
+    def apply(self, data, verbose=False):
         """Applies slicing to given data.
 
         Parameters
         ----------
         data : numpy.ndarray
             The data to apply the slicing on.
+        verbose : bool
+            Whether to print stuff.
 
         Returns
         -------
@@ -60,6 +62,8 @@ class RandomSlice(Preprocessing):
 
         """
         n = data.shape[1]
+        if verbose:
+            print("retrieving window")
         # slice_size
         if self.slice_param == -1 or self.slice_param > n:
             slice_size = n
@@ -117,8 +121,7 @@ class HashingWindow(Preprocessing):
         chunks = chunk_sizes()
         result = np.zeros((data.shape[0], len(chunks)+1))
         for j,subarray in tqdm_v(enumerate(np.split(data, chunks, axis=1)),
-                                    verbose,
-                                    desc="hashing"):
+                                    verbose, desc="hashing"):
             for i in range(subarray.shape[0]):
                 result[i,j] = int(self.hasher((''.join(map(str,subarray[i,:]))).encode('UTF-8')).hexdigest(),16)
         return result

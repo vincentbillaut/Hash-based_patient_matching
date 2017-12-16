@@ -313,11 +313,11 @@ class ComparisonEngine:
             data = self.genome_data.get_haploid1()
         elif self.channel == 'dip':
             data = self.genome_data.get_diploid()
-        self.data = self.preprocessing.apply(data)
+        self.data = self.preprocessing.apply(data, self.verbose)
 
     def set_metric(self, metric):
         def hamming(x, y):
-            return np.sum(np.abs(x - y))
+            return np.sum(x != y)
 
         def similarity(x, y):
             d = hamming(x, y)
@@ -364,11 +364,6 @@ class ComparisonEngine:
             for j in range(i + 1, n):
                 res.append(self.metric(self.data[i, ], self.data[j, ]))
             return res
-
-#         pool = Pool(8)
-#         results = pool.map(compute_row, list(range(n-1)))
-#         pool.close()
-#         pool.join()
 
         results = []
         if self.verbose:
